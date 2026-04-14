@@ -59,4 +59,14 @@ describe('renderBootstrap', () => {
   it('states the total count in the doc header', () => {
     expect(out).toContain('3 adapters (1 reference + 2 stubs)');
   });
+
+  it('self-registers on import by populating the singleton when empty', () => {
+    // Route handlers in the web app do `import '@/lib/integrations/bootstrap'`
+    // as a side-effect import. For that to work, the generated file must
+    // populate the shared `integrationRegistry` singleton at module load.
+    // The guard keeps it idempotent across HMR and multiple route modules.
+    expect(out).toContain("import { integrationRegistry } from './core';");
+    expect(out).toContain('if (integrationRegistry.list().length === 0)');
+    expect(out).toContain('bootstrap(integrationRegistry);');
+  });
 });

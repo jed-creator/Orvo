@@ -15,6 +15,7 @@
  * Count: 88 adapters (5 reference + 83 stubs).
  */
 import type { IntegrationAdapter, IntegrationRegistry } from './core';
+import { integrationRegistry } from './core';
 
 // -------------------- Reference adapters --------------------
 import { openTableAdapter } from './adapters/restaurants/opentable';
@@ -220,4 +221,14 @@ export function bootstrap(registry: IntegrationRegistry): void {
   for (const adapter of ALL_ADAPTERS) {
     registry.register(adapter);
   }
+}
+
+// Populate the shared singleton on first import so route handlers can
+// just `import '@/lib/integrations/bootstrap'` and resolve adapters
+// without wiring a boot hook. Guarded on the registry being empty so
+// subsequent imports (HMR, other route modules) are no-ops. Tests that
+// need an isolated registry instantiate `new IntegrationRegistry()`
+// and call `bootstrap()` directly, which is unaffected by this block.
+if (integrationRegistry.list().length === 0) {
+  bootstrap(integrationRegistry);
 }
