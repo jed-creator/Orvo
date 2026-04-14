@@ -72,14 +72,13 @@ export const SUPER_APP_CATEGORIES_FALLBACK: readonly SuperAppCategory[] = [
 ] as const;
 
 /**
- * Maps a category key to a route path. Scaffolded modules route
- * to their own landing page (`/shop`, `/eat`, …). `book` intentionally
- * routes to `/services` — Orvo's pre-existing booking entry point —
- * because the super-app "Book" category reuses the original service
- * browsing flow rather than owning its own scaffold.
+ * Maps a category key to a route path. Every scaffolded super-app
+ * module routes to its own `/<key>` landing page. `/services` is a
+ * merchant-dashboard route and must NOT be reachable from the
+ * consumer-facing super-app nav — `book` gets its own `/book` page
+ * (see `app/(book)/book/page.tsx`).
  */
 export function hrefForCategory(key: string): string {
-  if (key === 'book') return '/services';
   return `/${key}`;
 }
 

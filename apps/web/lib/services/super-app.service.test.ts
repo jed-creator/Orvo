@@ -106,7 +106,10 @@ describe('hrefForCategory', () => {
     expect(hrefForCategory('compare')).toBe('/compare');
   });
 
-  it('routes "book" to the pre-existing /services flow', () => {
-    expect(hrefForCategory('book')).toBe('/services');
+  it('routes "book" to the consumer /book module (not /services)', () => {
+    // /services is the merchant dashboard — consumers must never land
+    // there from the super-app nav.
+    expect(hrefForCategory('book')).toBe('/book');
+    expect(hrefForCategory('book')).not.toBe('/services');
   });
 });
