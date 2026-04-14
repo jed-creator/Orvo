@@ -1,17 +1,19 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SuperAppNav } from '@/components/super-app/super-app-nav';
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <header className="border-b border-zinc-200">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
           <Link
             href="/"
             className="text-xl font-semibold tracking-tight text-brand-primary"
           >
             Orvo
           </Link>
+          <SuperAppNav />
           <nav className="flex items-center gap-2">
             <Link href="/login">
               <Button variant="ghost" size="sm">
