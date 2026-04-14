@@ -84,3 +84,6 @@ supabase/.temp
 *.ipa
 *.apk
 *.aab
+
+# Git worktrees (isolated dev workspaces)
+.worktrees/
