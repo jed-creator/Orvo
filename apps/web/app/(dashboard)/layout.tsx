@@ -48,6 +48,8 @@ export default async function DashboardLayout({
       { href: '/dashboard/bookings', label: 'Bookings' },
       { href: '/dashboard/services', label: 'Services' },
       { href: '/dashboard/availability', label: 'Availability' },
+      { href: '/dashboard/analytics', label: 'Analytics' },
+      { href: '/dashboard/stripe', label: 'Payments' },
       { href: '/dashboard/business', label: 'Business' },
     );
   }

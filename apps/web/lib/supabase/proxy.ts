@@ -21,6 +21,9 @@ const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/auth',
+  // API routes handle their own auth (bearer token, webhook signature, etc.)
+  // so the proxy never redirects them. Each route handler decides.
+  '/api',
 ];
 
 function isPublicPath(pathname: string): boolean {
