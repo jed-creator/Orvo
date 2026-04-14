@@ -12,6 +12,7 @@ import React, {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { registerForPushNotifications } from '@/lib/push-notifications';
 
 interface AuthContextType {
   session: Session | null;
@@ -45,12 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (data.session?.user) {
+        // Fire-and-forget push registration (safe to fail silently)
+        registerForPushNotifications(data.session.user.id).catch(() => {});
+      }
     });
 
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession);
+        if (newSession?.user) {
+          registerForPushNotifications(newSession.user.id).catch(() => {});
+        }
       },
     );
 

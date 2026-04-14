@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth-context';
 import { ServaTheme } from '@/constants/serva-theme';
@@ -22,24 +25,39 @@ interface BookingRow {
 
 export default function BookingsScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user) return;
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from('bookings')
-        .select(
-          'id, start_time, status, total_cents, service:services(name), business:businesses(name)',
-        )
-        .eq('consumer_id', user.id)
-        .order('start_time', { ascending: false });
-      setBookings((data ?? []) as unknown as BookingRow[]);
-      setLoading(false);
-    })();
+    const { data } = await supabase
+      .from('bookings')
+      .select(
+        'id, start_time, status, total_cents, service:services(name), business:businesses(name)',
+      )
+      .eq('consumer_id', user.id)
+      .order('start_time', { ascending: false });
+    setBookings((data ?? []) as unknown as BookingRow[]);
   }, [user]);
+
+  useEffect(() => {
+    setLoading(true);
+    load().then(() => setLoading(false));
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', {
@@ -67,9 +85,23 @@ export default function BookingsScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
           {bookings.map((b) => (
-            <View key={b.id} style={styles.card}>
+            <Pressable
+              key={b.id}
+              style={styles.card}
+              onPress={() =>
+                router.push({
+                  pathname: '/booking/[id]',
+                  params: { id: b.id },
+                })
+              }
+            >
               <Text style={styles.bizName}>{b.business?.name ?? '—'}</Text>
               <Text style={styles.serviceName}>{b.service?.name ?? '—'}</Text>
               <View style={styles.row}>
@@ -78,8 +110,10 @@ export default function BookingsScreen() {
                   {b.status.replace('_', ' ')}
                 </Text>
               </View>
-              <Text style={styles.price}>${(b.total_cents / 100).toFixed(2)}</Text>
-            </View>
+              <Text style={styles.price}>
+                ${(b.total_cents / 100).toFixed(2)}
+              </Text>
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -118,6 +152,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 4,
+    marginBottom: 12,
   },
   bizName: {
     fontSize: 16,
