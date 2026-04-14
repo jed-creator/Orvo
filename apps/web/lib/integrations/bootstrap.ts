@@ -12,7 +12,7 @@
  * manifest — with the shared registry so API routes and server
  * actions can resolve providers by key.
  *
- * Count: 88 adapters (5 reference + 83 stubs).
+ * Count: 89 adapters (5 reference + 84 stubs).
  */
 import type { IntegrationAdapter, IntegrationRegistry } from './core';
 import { integrationRegistry } from './core';
@@ -38,6 +38,7 @@ import { grubhubAdapter } from './adapters/delivery/grubhub';
 import { skipAdapter } from './adapters/delivery/skip';
 import { justEatAdapter } from './adapters/delivery/just_eat';
 import { toastOrderingAdapter } from './adapters/delivery/toast_ordering';
+import { squareOnlineOrderingAdapter } from './adapters/delivery/square_online_ordering';
 import { freshaAdapter } from './adapters/beauty-wellness/fresha';
 import { vagaroAdapter } from './adapters/beauty-wellness/vagaro';
 import { glossgeniusAdapter } from './adapters/beauty-wellness/glossgenius';
@@ -135,6 +136,7 @@ export const ALL_ADAPTERS: IntegrationAdapter[] = [
   skipAdapter,
   justEatAdapter,
   toastOrderingAdapter,
+  squareOnlineOrderingAdapter,
   freshaAdapter,
   vagaroAdapter,
   glossgeniusAdapter,

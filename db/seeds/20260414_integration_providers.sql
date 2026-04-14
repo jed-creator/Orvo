@@ -37,6 +37,7 @@ INSERT INTO public.integration_providers (key, category, display_name, capabilit
 ('skip',                 'delivery',        'SkipTheDishes',       ARRAY['search','details'], FALSE),
 ('just_eat',             'delivery',        'Just Eat',            ARRAY['search','details'], FALSE),
 ('toast_ordering',       'delivery',        'Toast Ordering',      ARRAY['search','details'], FALSE),
+('square_online_ordering','delivery',        'Square Online Ordering', ARRAY['search','details'], FALSE),
 
 -- ---------- Beauty & Wellness ----------
 ('fresha',               'beauty-wellness', 'Fresha',              ARRAY['search','details'], FALSE),

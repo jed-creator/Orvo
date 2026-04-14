@@ -22,13 +22,14 @@ export const MANIFEST: StubSpec[] = [
   { key: 'toast_tables', category: 'restaurants', displayName: 'Toast Tables' },
   { key: 'touchbistro', category: 'restaurants', displayName: 'TouchBistro' },
 
-  // Delivery (6)
+  // Delivery (7)
   { key: 'uber_eats', category: 'delivery', displayName: 'Uber Eats' },
   { key: 'doordash', category: 'delivery', displayName: 'DoorDash' },
   { key: 'grubhub', category: 'delivery', displayName: 'Grubhub' },
   { key: 'skip', category: 'delivery', displayName: 'SkipTheDishes' },
   { key: 'just_eat', category: 'delivery', displayName: 'Just Eat' },
   { key: 'toast_ordering', category: 'delivery', displayName: 'Toast Ordering' },
+  { key: 'square_online_ordering', category: 'delivery', displayName: 'Square Online Ordering' },
 
   // Beauty & Wellness (7)
   { key: 'fresha', category: 'beauty-wellness', displayName: 'Fresha' },

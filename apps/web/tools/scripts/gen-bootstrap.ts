@@ -6,7 +6,7 @@
  * file that imports every adapter and exposes a `bootstrap(registry)`
  * function for the web server to call at boot.
  *
- * Why a generator? Hand-maintaining 88 imports in one file is an
+ * Why a generator? Hand-maintaining 89 imports in one file is an
  * error-prone chore whenever a provider is added. Generating from the
  * same `manifest.ts` that drives stub creation keeps the two in sync
  * by construction.

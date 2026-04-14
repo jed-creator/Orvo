@@ -9,8 +9,8 @@ describe('bootstrap', () => {
     bootstrap(registry);
   });
 
-  it('registers all 88 adapters (83 stubs + 5 references)', () => {
-    expect(registry.list().length).toBe(88);
+  it('registers all 89 adapters (84 stubs + 5 references)', () => {
+    expect(registry.list().length).toBe(89);
   });
 
   it('resolves every reference adapter by its declared key', () => {
