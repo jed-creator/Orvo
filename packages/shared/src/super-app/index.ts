@@ -12,3 +12,4 @@ export * from './rideshare';
 export * from './trips';
 export * from './tickets';
 export * from './marketplace';
+export * from './pricing';
