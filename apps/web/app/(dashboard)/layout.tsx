@@ -47,10 +47,14 @@ export default async function DashboardLayout({
       { href: '/dashboard/calendar', label: 'Calendar' },
       { href: '/dashboard/bookings', label: 'Bookings' },
       { href: '/dashboard/services', label: 'Services' },
-      { href: '/dashboard/availability', label: 'Availability' },
+      { href: '/dashboard/forms', label: 'Forms' },
+      { href: '/dashboard/staff', label: 'Staff' },
+      { href: '/dashboard/availability', label: 'Hours' },
+      { href: '/dashboard/reviews', label: 'Reviews' },
       { href: '/dashboard/analytics', label: 'Analytics' },
       { href: '/dashboard/stripe', label: 'Payments' },
       { href: '/dashboard/business', label: 'Business' },
+      { href: '/dashboard/settings', label: 'Settings' },
     );
   }
   navLinks.push({ href: '/profile', label: 'Profile' });
