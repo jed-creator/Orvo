@@ -10,3 +10,4 @@ export * from './shopping';
 export * from './delivery';
 export * from './rideshare';
 export * from './trips';
+export * from './tickets';
