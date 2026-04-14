@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 /**
@@ -9,8 +10,16 @@ import { defineConfig } from 'vitest/config';
  *
  * Playwright e2e tests (tests/e2e/**) are deliberately excluded — those
  * run via `npm run test:e2e`.
+ *
+ * The `@/*` alias mirrors apps/web/tsconfig.json so route-handler tests
+ * can use the same import paths as production code.
  */
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('.', import.meta.url)),
+    },
+  },
   test: {
     include: ['**/*.test.ts', '**/*.test.tsx'],
     exclude: [
