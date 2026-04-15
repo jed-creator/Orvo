@@ -47,7 +47,7 @@ async function updateProfileAction(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect('/profile');
 }
 
 export default async function ProfilePage() {
@@ -63,7 +63,7 @@ export default async function ProfilePage() {
     .single();
 
   return (
-    <div className="max-w-xl">
+    <div data-testid="profile-basic" className="max-w-xl">
       <Card>
         <CardHeader>
           <CardTitle>Complete your profile</CardTitle>
