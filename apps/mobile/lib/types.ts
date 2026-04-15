@@ -35,6 +35,14 @@ export interface Business {
     state: string;
     postal_code: string;
     country: string;
+    /**
+     * Optional coordinates written by `seed-demo.ts` so the Map tab can
+     * render markers without touching PostGIS. The mobile app treats
+     * these as display-only — authoritative geo lives in the
+     * `businesses.location` GEOGRAPHY column server-side.
+     */
+    lat?: number;
+    lng?: number;
   } | null;
   phone: string | null;
   email: string | null;

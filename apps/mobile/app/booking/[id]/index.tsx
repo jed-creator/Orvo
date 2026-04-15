@@ -128,7 +128,7 @@ export default function BookingDetailScreen() {
           />
           <Row
             label="Payment"
-            value={booking.payment_status.replace('_', ' ')}
+            value={formatPaymentStatus(booking.payment_status)}
           />
           {booking.business?.phone && (
             <Row label="Business phone" value={booking.business.phone} />
@@ -177,6 +177,22 @@ function statusColor(status: string) {
   if (status === 'completed') return { color: '#16a34a' };
   if (status === 'cancelled' || status === 'no_show') return { color: '#71717a' };
   return { color: '#d97706' };
+}
+
+function formatPaymentStatus(status: string): string {
+  switch (status) {
+    case 'captured':
+      return 'Paid';
+    case 'authorized':
+      return 'Authorized';
+    case 'refunded':
+      return 'Refunded';
+    case 'failed':
+      return 'Failed';
+    case 'pending':
+    default:
+      return 'Pending';
+  }
 }
 
 function Row({ label, value }: { label: string; value: string }) {

@@ -33,14 +33,14 @@ interface CategoryEndpoint {
 }
 
 const ENDPOINTS: Record<string, CategoryEndpoint> = {
-  shop: { path: '/api/shop/search', resultKey: 'products' },
-  eat: { path: '/api/eat/search', resultKey: 'results' },
+  shop: { path: '/api/shop/search', resultKey: 'results' },
+  eat: { path: '/api/eat/merchants', resultKey: 'merchants' },
   ride: { path: '/api/ride/search', resultKey: 'rides' },
   trips: { path: '/api/trips/search', resultKey: 'trips' },
-  tickets: { path: '/api/tickets/search', resultKey: 'tickets' },
+  tickets: { path: '/api/tickets/search', resultKey: 'events' },
   market: { path: '/api/market/search', resultKey: 'items' },
   book: { path: '/api/book/services', resultKey: 'services' },
-  compare: { path: '/api/compare', resultKey: 'results' },
+  compare: { path: '/api/compare/search', resultKey: 'results' },
 };
 
 /**
@@ -49,12 +49,19 @@ const ENDPOINTS: Record<string, CategoryEndpoint> = {
  * render an "empty state" which is the right UX for both "no results"
  * and "API unreachable".
  *
+ * `filter` is an optional sub-filter key forwarded as `?filter=<key>`
+ * to the endpoint. Only a few routes honor it today — `/api/book/
+ * services` is the canonical consumer, paired with the `BOOK_SUB_FILTERS`
+ * vocabulary. Other routes simply ignore the parameter, so it's safe to
+ * pass unconditionally.
+ *
  * Failures are logged via `console.warn` so they're visible in Metro's
  * device log during development.
  */
 export async function searchCategory(
   category: string,
   query: string,
+  filter?: string,
 ): Promise<NormalizedSearchResult[]> {
   const endpoint = ENDPOINTS[category];
   if (!endpoint) {
@@ -62,7 +69,11 @@ export async function searchCategory(
     return [];
   }
 
-  const url = `${WEB_API_URL}${endpoint.path}?q=${encodeURIComponent(query)}`;
+  const params = new URLSearchParams({ q: query });
+  if (filter && filter !== 'all') {
+    params.set('filter', filter);
+  }
+  const url = `${WEB_API_URL}${endpoint.path}?${params.toString()}`;
 
   try {
     const res = await fetch(url, {

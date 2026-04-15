@@ -24,7 +24,7 @@ describe('shopifyAdapter', () => {
   });
 
   it('search() returns products whose title matches the query', async () => {
-    const results = await shopifyAdapter.search({ text: 'hoodie' });
+    const results = await shopifyAdapter.search({ text: 'pegasus' });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(() => NormalizedSearchResultSchema.parse(r)).not.toThrow();
@@ -32,7 +32,13 @@ describe('shopifyAdapter', () => {
       expect(r.category).toBe('ecommerce');
       expect(r.price).toBeDefined();
     }
-    expect(results.some((r) => /hoodie/i.test(r.title))).toBe(true);
+    expect(results.some((r) => /pegasus/i.test(r.title))).toBe(true);
+  });
+
+  it('search() matches by vendor name as well as title', async () => {
+    const results = await shopifyAdapter.search({ text: 'patagonia' });
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => /patagonia/i.test(r.title))).toBe(true);
   });
 
   it('search() returns an empty array when nothing matches', async () => {
