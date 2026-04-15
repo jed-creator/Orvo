@@ -89,3 +89,31 @@ export const SUPER_APP_ORDER: string[] = [
   'book',
   'compare',
 ];
+
+/**
+ * Sub-filter chip vocabulary passed into `CategoryScreen` for the Book
+ * tile. Mirrors `BOOK_SUB_FILTERS` in `apps/web/lib/services/
+ * booking.service.ts` — kept in sync by hand because the mobile bundle
+ * cannot import from the web `@/lib/services` alias. Adding an entry
+ * here without adding the matching entry server-side will cause the
+ * filter to silently fall through to the full fan-out; that's still a
+ * valid empty state, not a crash.
+ *
+ * Order matters: this is the visual order of the chip row, and `all`
+ * is the default selection.
+ */
+export interface CategorySubFilter {
+  /** URL-safe key passed to the API as `?filter=<key>`. */
+  key: string;
+  /** Short label rendered inside the chip. */
+  label: string;
+}
+
+export const BOOK_SUB_FILTERS: readonly CategorySubFilter[] = [
+  { key: 'all', label: 'All' },
+  { key: 'beauty', label: 'Beauty & wellness' },
+  { key: 'fitness', label: 'Fitness' },
+  { key: 'general-booking', label: 'General' },
+  { key: 'home-services', label: 'Home services' },
+  { key: 'pet-care', label: 'Pet care' },
+];

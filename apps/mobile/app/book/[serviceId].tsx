@@ -10,6 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +25,31 @@ interface ServiceWithBusiness extends Service {
   business: { id: string; name: string } | null;
 }
 
+// Default the picker to tomorrow at 10am — a friendly starting slot that
+// falls inside every seeded business's 9–5 availability.
+function initialBookingDateTime(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(10, 0, 0, 0);
+  return d;
+}
+
+function formatDateLabel(d: Date): string {
+  return d.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatTimeLabel(d: Date): string {
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function BookServiceScreen() {
   const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
   const router = useRouter();
@@ -32,8 +60,10 @@ export default function BookServiceScreen() {
   const [fields, setFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [bookingDateTime, setBookingDateTime] = useState<Date>(
+    initialBookingDateTime,
+  );
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,17 +101,32 @@ export default function BookServiceScreen() {
     })();
   }, [serviceId]);
 
+  const onPickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    // Android dismisses after one interaction; iOS keeps the picker mounted.
+    if (Platform.OS !== 'ios') {
+      setPickerMode(null);
+    }
+    if (event.type === 'set' && selected) {
+      setBookingDateTime((prev) => {
+        const next = new Date(prev);
+        if (pickerMode === 'date') {
+          next.setFullYear(selected.getFullYear());
+          next.setMonth(selected.getMonth());
+          next.setDate(selected.getDate());
+        } else if (pickerMode === 'time') {
+          next.setHours(selected.getHours());
+          next.setMinutes(selected.getMinutes());
+          next.setSeconds(0);
+          next.setMilliseconds(0);
+        }
+        return next;
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     setError(null);
     if (!service || !user) return;
-    if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      setError('Enter date as YYYY-MM-DD.');
-      return;
-    }
-    if (!time.match(/^\d{2}:\d{2}$/)) {
-      setError('Enter time as HH:MM (24-hour).');
-      return;
-    }
 
     // Validate required intake fields
     for (const f of fields) {
@@ -93,9 +138,10 @@ export default function BookServiceScreen() {
 
     setSubmitting(true);
 
-    const start = new Date(`${date}T${time}:00`);
+    const start = new Date(bookingDateTime);
     const end = new Date(start.getTime() + service.duration_minutes * 60_000);
 
+    // Demo mode: no payment gating — skip straight to a confirmed booking.
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .insert({
@@ -104,9 +150,9 @@ export default function BookServiceScreen() {
         service_id: service.id,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
-        status: 'pending',
+        status: 'confirmed',
         total_cents: service.price_cents,
-        payment_status: 'pending',
+        payment_status: 'captured',
       })
       .select('id')
       .single();
@@ -191,23 +237,41 @@ export default function BookServiceScreen() {
 
           <Text style={styles.sectionTitle}>Pick a date & time</Text>
           <Text style={styles.label}>Date</Text>
-          <TextInput
-            style={styles.input}
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD (e.g. 2026-05-15)"
-            placeholderTextColor="#a1a1aa"
-            autoCapitalize="none"
-          />
-          <Text style={styles.label}>Time (24-hour)</Text>
-          <TextInput
-            style={styles.input}
-            value={time}
-            onChangeText={setTime}
-            placeholder="HH:MM (e.g. 14:30)"
-            placeholderTextColor="#a1a1aa"
-            autoCapitalize="none"
-          />
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() =>
+              setPickerMode(pickerMode === 'date' ? null : 'date')
+            }
+            activeOpacity={0.7}
+          >
+            <Text style={styles.pickerButtonText}>
+              {formatDateLabel(bookingDateTime)}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.label}>Time</Text>
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() =>
+              setPickerMode(pickerMode === 'time' ? null : 'time')
+            }
+            activeOpacity={0.7}
+          >
+            <Text style={styles.pickerButtonText}>
+              {formatTimeLabel(bookingDateTime)}
+            </Text>
+          </TouchableOpacity>
+          {pickerMode && (
+            <View style={styles.pickerWrapper}>
+              <DateTimePicker
+                value={bookingDateTime}
+                mode={pickerMode}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={pickerMode === 'date' ? new Date() : undefined}
+                minuteInterval={15}
+                onChange={onPickerChange}
+              />
+            </View>
+          )}
 
           {form && fields.length > 0 && (
             <>
@@ -267,8 +331,8 @@ export default function BookServiceScreen() {
           </TouchableOpacity>
 
           <Text style={styles.disclaimer}>
-            Payment will be collected at the time of service for MVP. Real
-            Stripe payment sheet comes in Phase 7+ after native build.
+            This is a demo booking — no payment is collected. A confirmation
+            will be sent to your email.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -346,6 +410,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
     color: OrvoTheme.foreground,
+  },
+  pickerButton: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: OrvoTheme.border,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    backgroundColor: OrvoTheme.background,
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: OrvoTheme.foreground,
+  },
+  pickerWrapper: {
+    marginTop: 8,
+    backgroundColor: OrvoTheme.muted,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   textarea: {
     minHeight: 80,

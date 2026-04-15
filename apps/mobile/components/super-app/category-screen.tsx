@@ -21,23 +21,41 @@ import {
   FlatList,
   Pressable,
   ActivityIndicator,
+  Image,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 
 import { OrvoTheme } from '@/constants/orvo-theme';
 import { searchCategory } from '@/lib/super-app-api';
 import type { NormalizedSearchResult } from '@/lib/super-app-types';
-import { SUPER_APP_CONFIG } from '@/lib/super-app-config';
+import {
+  SUPER_APP_CONFIG,
+  type CategorySubFilter,
+} from '@/lib/super-app-config';
 
 interface CategoryScreenProps {
   categoryKey: string;
+  /**
+   * Optional horizontal chip row of sub-filter tabs. When provided, the
+   * screen renders a chip per filter above the results and re-runs the
+   * search whenever the user selects a new one. The first entry is the
+   * default selection. Currently used by the Book tile with
+   * `BOOK_SUB_FILTERS`; other tiles omit this prop.
+   */
+  subFilters?: readonly CategorySubFilter[];
 }
 
-export function CategoryScreen({ categoryKey }: CategoryScreenProps) {
+export function CategoryScreen({
+  categoryKey,
+  subFilters,
+}: CategoryScreenProps) {
   const config = SUPER_APP_CONFIG[categoryKey];
+  const defaultFilter = subFilters?.[0]?.key ?? 'all';
   const [query, setQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<string>(defaultFilter);
   const [results, setResults] = useState<NormalizedSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -46,14 +64,14 @@ export function CategoryScreen({ categoryKey }: CategoryScreenProps) {
   // whatever the adapters return for "no filter" (currently nothing
   // from stubs — but the reference adapters may return mock data).
   useEffect(() => {
-    void runSearch('');
+    void runSearch(query, activeFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryKey]);
+  }, [categoryKey, activeFilter]);
 
-  async function runSearch(text: string) {
+  async function runSearch(text: string, filterKey: string) {
     setLoading(true);
     setSearched(true);
-    const data = await searchCategory(categoryKey, text);
+    const data = await searchCategory(categoryKey, text, filterKey);
     setResults(data);
     setLoading(false);
   }
@@ -83,10 +101,41 @@ export function CategoryScreen({ categoryKey }: CategoryScreenProps) {
           value={query}
           onChangeText={setQuery}
           returnKeyType="search"
-          onSubmitEditing={() => void runSearch(query)}
+          onSubmitEditing={() => void runSearch(query, activeFilter)}
           autoCapitalize="none"
         />
       </View>
+
+      {subFilters && subFilters.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+          style={styles.filterRowContainer}
+        >
+          {subFilters.map((f) => {
+            const active = f.key === activeFilter;
+            return (
+              <Pressable
+                key={f.key}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setActiveFilter(f.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text
+                  style={[
+                    styles.chipLabel,
+                    active && styles.chipLabelActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -102,7 +151,7 @@ export function CategoryScreen({ categoryKey }: CategoryScreenProps) {
       ) : (
         <FlatList
           data={results}
-          keyExtractor={(item, idx) => `${item.provider}-${item.id}-${idx}`}
+          keyExtractor={(item, idx) => `${item.provider}-${item.externalId}-${idx}`}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => <ResultCard result={item} />}
         />
@@ -111,46 +160,110 @@ export function CategoryScreen({ categoryKey }: CategoryScreenProps) {
   );
 }
 
+/**
+ * Translate a server-provided `metadata.deepLink` string into an
+ * expo-router path. The server side picks this format deliberately so
+ * the mobile client can route internally instead of bouncing out to a
+ * browser. Anything we can't recognize falls through to
+ * `Linking.openURL(result.url)` — that's the right behavior for
+ * adapter fixtures pointing at real external sites.
+ */
+function routeForResult(
+  result: NormalizedSearchResult,
+): { pathname: string; params?: Record<string, string> } | null {
+  const deepLink =
+    typeof result.metadata?.deepLink === 'string'
+      ? (result.metadata.deepLink as string)
+      : null;
+  if (!deepLink) return null;
+  // `/book/<serviceId>` → Book a native service
+  const bookMatch = deepLink.match(/^\/book\/(.+)$/);
+  if (bookMatch) {
+    return {
+      pathname: '/book/[serviceId]',
+      params: { serviceId: bookMatch[1] },
+    };
+  }
+  // `/business/<id>` → Business detail
+  const bizMatch = deepLink.match(/^\/business\/(.+)$/);
+  if (bizMatch) {
+    return {
+      pathname: '/business/[id]',
+      params: { id: bizMatch[1] },
+    };
+  }
+  return null;
+}
+
 function ResultCard({ result }: { result: NormalizedSearchResult }) {
+  const router = useRouter();
+
   const priceLabel =
-    typeof result.priceCents === 'number'
-      ? `$${(result.priceCents / 100).toFixed(2)}${
-          result.currency && result.currency !== 'USD' ? ` ${result.currency}` : ''
+    result.price && typeof result.price.amount === 'number'
+      ? `$${(result.price.amount / 100).toFixed(2)}${
+          result.price.currency && result.price.currency !== 'USD'
+            ? ` ${result.price.currency}`
+            : ''
         }`
       : null;
 
+  // `metadata.description` is our escape hatch — the canonical shape has
+  // no first-class description field, but a few routes (notably book
+  // services and market merchants) place one there for richer cards.
+  const description =
+    typeof result.metadata?.description === 'string'
+      ? (result.metadata.description as string)
+      : undefined;
+
+  // First media asset, when present. Seed, reference adapters, and the
+  // Orvo-native book route all populate `media[0].url` with a real
+  // image URL — most use Picsum placeholders sized for cards.
+  const mediaUrl =
+    result.media && result.media.length > 0 && result.media[0].url
+      ? result.media[0].url
+      : null;
+
+  const handlePress = () => {
+    const internal = routeForResult(result);
+    if (internal) {
+      // Expo-router's typed href helper — the cast is because
+      // NormalizedSearchResult is pure data and can't express the
+      // typed href union at compile time.
+      router.push(internal as never);
+      return;
+    }
+    if (result.url) {
+      void Linking.openURL(result.url);
+    }
+  };
+
   return (
-    <Pressable
-      style={styles.card}
-      onPress={() => {
-        if (result.externalUrl) {
-          void Linking.openURL(result.externalUrl);
-        }
-      }}
-    >
-      <Text style={styles.provider}>{result.provider}</Text>
-      <Text style={styles.cardTitle}>{result.title}</Text>
-      {result.subtitle && (
-        <Text style={styles.cardSubtitle}>{result.subtitle}</Text>
+    <Pressable style={styles.card} onPress={handlePress}>
+      {mediaUrl && (
+        <Image
+          source={{ uri: mediaUrl }}
+          style={styles.cardImage}
+          resizeMode="cover"
+          accessibilityLabel={result.title}
+        />
       )}
-      {result.description && (
-        <Text style={styles.cardDesc} numberOfLines={2}>
-          {result.description}
-        </Text>
-      )}
-      <View style={styles.cardFooter}>
-        {priceLabel && <Text style={styles.price}>{priceLabel}</Text>}
-        {typeof result.rating === 'number' && (
-          <Text style={styles.rating}>
-            ★ {result.rating.toFixed(1)}
-            {typeof result.reviewCount === 'number' ? (
-              <Text style={styles.reviewCount}>
-                {' '}
-                ({result.reviewCount})
-              </Text>
-            ) : null}
+      <View style={styles.cardBody}>
+        <Text style={styles.provider}>{result.provider}</Text>
+        <Text style={styles.cardTitle}>{result.title}</Text>
+        {result.subtitle && (
+          <Text style={styles.cardSubtitle}>{result.subtitle}</Text>
+        )}
+        {description && (
+          <Text style={styles.cardDesc} numberOfLines={2}>
+            {description}
           </Text>
         )}
+        <View style={styles.cardFooter}>
+          {priceLabel && <Text style={styles.price}>{priceLabel}</Text>}
+          {typeof result.rating === 'number' && (
+            <Text style={styles.rating}>★ {result.rating.toFixed(1)}</Text>
+          )}
+        </View>
       </View>
     </Pressable>
   );
@@ -179,6 +292,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: OrvoTheme.foreground,
   },
+  filterRowContainer: {
+    flexGrow: 0,
+    marginBottom: 12,
+  },
+  filterRow: {
+    paddingHorizontal: 20,
+    gap: 8,
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: OrvoTheme.border,
+    backgroundColor: OrvoTheme.muted,
+  },
+  chipActive: {
+    backgroundColor: OrvoTheme.primary,
+    borderColor: OrvoTheme.primary,
+  },
+  chipLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: OrvoTheme.mutedForeground,
+  },
+  chipLabelActive: {
+    color: OrvoTheme.primaryForeground,
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -193,9 +335,17 @@ const styles = StyleSheet.create({
   list: { padding: 20, paddingTop: 0, gap: 12 },
   card: {
     backgroundColor: OrvoTheme.muted,
-    padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    overflow: 'hidden',
+  },
+  cardImage: {
+    width: '100%',
+    height: 160,
+    backgroundColor: OrvoTheme.border,
+  },
+  cardBody: {
+    padding: 16,
   },
   provider: {
     fontSize: 11,
@@ -234,9 +384,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#F59E0B',
     fontWeight: '600',
-  },
-  reviewCount: {
-    color: OrvoTheme.mutedForeground,
-    fontWeight: '400',
   },
 });

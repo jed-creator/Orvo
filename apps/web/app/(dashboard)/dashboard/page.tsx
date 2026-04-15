@@ -129,9 +129,11 @@ export default async function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" size="sm" disabled>
-                Bookings (Phase 4B)
-              </Button>
+              <Link href="/dashboard/bookings">
+                <Button variant="outline" size="sm">
+                  Manage bookings →
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

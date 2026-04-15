@@ -71,10 +71,10 @@ export default function BookingConfirmationScreen() {
         <View style={styles.checkmark}>
           <Text style={styles.checkmarkText}>✓</Text>
         </View>
-        <Text style={styles.title}>Booking requested</Text>
+        <Text style={styles.title}>Booking confirmed</Text>
         <Text style={styles.subtitle}>
-          {booking.business?.name} will confirm your booking shortly. You&apos;ll
-          receive an email once they do.
+          You&apos;re all set at {booking.business?.name}. A confirmation email
+          is on its way.
         </Text>
 
         <View style={styles.card}>

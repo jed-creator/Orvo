@@ -12,12 +12,21 @@ type IconSymbolName = keyof typeof MAPPING;
  * Add your SF Symbols to Material Icons mappings here.
  * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ *
+ * Every tab icon used in `app/(tabs)/_layout.tsx` needs an entry here
+ * or Android / web will render a blank box. iOS uses `expo-symbols`
+ * natively so it works even without the mapping.
  */
 const MAPPING = {
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'square.grid.2x2.fill': 'apps',
+  magnifyingglass: 'search',
+  'map.fill': 'map',
+  calendar: 'event',
+  'person.fill': 'person',
 } as IconMapping;
 
 /**
