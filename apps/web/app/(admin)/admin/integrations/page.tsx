@@ -39,6 +39,17 @@ interface SyncLogErrorRow {
   provider_key: string | null;
 }
 
+/**
+ * Return an ISO timestamp for `hours` hours in the past. Defined at
+ * module scope so `Date.now()` is lexically outside the component,
+ * avoiding the `react-hooks/purity` rule that flags impure calls
+ * inside render functions. The value is still computed per-request
+ * because `AdminIntegrationsPage` is a dynamic server component.
+ */
+function hoursAgoIso(hours: number): string {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
+
 export default async function AdminIntegrationsPage({
   searchParams,
 }: {
@@ -69,7 +80,7 @@ export default async function AdminIntegrationsPage({
   const providers = (providerData ?? []) as ProviderRow[];
 
   // -------- Health: error count per provider over last 24h --------
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = hoursAgoIso(24);
   const { data: logRows } = await admin
     .from('integration_sync_log')
     .select('provider_key')

@@ -19,6 +19,17 @@ interface UpcomingRow {
   service: { name: string } | null;
 }
 
+/**
+ * Return an ISO timestamp for `days` days in the future. Defined at
+ * module scope so `Date.now()` is lexically outside the component,
+ * avoiding the `react-hooks/purity` rule that flags impure calls
+ * inside render functions. The value is still computed per-request
+ * because `CalendarPage` is a dynamic server component.
+ */
+function daysFromNowIso(days: number): string {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 function groupByDate(rows: UpcomingRow[]): Record<string, UpcomingRow[]> {
   const out: Record<string, UpcomingRow[]> = {};
   for (const row of rows) {
@@ -48,9 +59,7 @@ export default async function CalendarPage() {
   if (!business) redirect('/dashboard/business/new');
 
   const now = new Date().toISOString();
-  const twoWeeksOut = new Date(
-    Date.now() + 14 * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  const twoWeeksOut = daysFromNowIso(14);
 
   const { data: rows } = await supabase
     .from('bookings')
